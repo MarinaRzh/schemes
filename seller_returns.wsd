@@ -1,0 +1,35 @@
+@startuml
+actor "Продавец" as seller
+participant "seller-returns" as slr
+participant "RMS" as rms
+participant "refund" as refund
+
+seller -> slr : Просмотр заявки на возврат
+activate slr
+slr -> rms : Получить подробную информацию о возврате \n (Товар, id заказа, id заявки на возврат)
+activate rms
+rms -> slr : Отдать информацию о возврате \n (Дата создания заявки на возврат, причина возврата, фото товара, комментарии от покупателя)
+deactivate rms
+alt Дата создания зявки более 48 часов
+slr -> seller : Показать сообщение: \n "Прошло более 48 часов после создания заявки на возврат, она была автоматически одобрена"
+else Дата создания зявки менее 48 часов
+slr -> seller : Показать подробную информацию о заявке и возможные действия с заявкой
+deactivate slr
+alt Одобрение возврата товара
+seller -> slr : Нажать на кн Одобрить возврат товара
+activate slr
+slr -> rms : Обновить статус заявки на возврат: Одобрена
+activate rms
+rms -> refund : Вернуть деньги по заявке \n type = full_return
+activate refund
+refund -> rms: 200 OK
+deactivate refund
+rms -> slr : Статус заявки обновлен
+deactivate rms
+slr -> seller : Деньги будут возвращены покупателю после того, как он отправит товар
+deactivate slr
+else Возврат денег без возврата товара
+else Отклонение возврата
+end alt
+end alt
+@enduml

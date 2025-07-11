@@ -1,0 +1,56 @@
+@startuml test
+
+actor "Пользователь" as user 
+participant "ab-ui" as ab_ui
+participant "ab-controller-api" as ab_controller_api
+
+user->> ab_ui : Нажимает на кн Отвязать от расчета
+
+alt Не согласен со сбросом расчета
+    ab_ui->>user: sms пользователю: Расчет все еще привязан к AB тесту
+else Согласен со сбросом расчета
+    ab_ui->>ab_controller_api: Запрос /update AB test, удаление ссылки на расчет
+    ab_controller_api->>ab_ui: Ok
+    ab_ui->>user: AB тест можно редактировать
+end alt
+
+@enduml
+
+@startuml Просмотр списка товаров для возврата
+
+actor client
+participant front
+participant OMS
+participant "product-facade"
+participant "returns-policy"
+database rms_api_DB
+
+client-> front: Нажал кнопку\nВернуть товары
+
+group Получение информации о заказе - паралелльно
+	activate front
+	front -> OMS : Запрос инф-ции о заказе\n //Products//
+	front -> OMS: Запрос списка\nтоваров
+	front -> "product-facade" : Запрос инф-ции о товаре \n(по sku; получаем: info, description, attribute) \n //Products//
+	deactivate front
+end
+
+group Сбор информации для формирования списка товаров
+	front -> "returns-policy" : Запрос сроков возврата товара, список причин для возврата, возвратность товара; можно ли вернуть излишком \n//GetReturnPoliciesV2//
+	front ->rms_api_DB: Ищем возвращенные экземпляры в возвратах и частично компенсированные \n(//табл.client_return_item//)
+	group Формирование списка товаров для возврата (по каждому товару) - последовательно
+        front -> OMS: Проверяем, присутствует ли товар в возврате
+        front -> OMS: Проверяем присутствие в частичном отказе при вручении
+        front -> OMS: Проверяем наличие ЧК
+        front -> OMS: Остался ли хоть один товар к возврату
+        front -> OMS: Возвратный ли товар
+    end
+end
+activate front
+front->front: Аггрегирует полученную информацию о заказах и товарах, которые доступны для возврата
+deactivate front
+front->"product-facade": Получение информации о товарах (название, фото, признак 18+, атрибуты: цвет, размер обуви и одежды)
+"product-facade" -->front : Итоговый список \nс информацией о товарах\n
+front-->client : Отображение списка товаров
+
+@enduml

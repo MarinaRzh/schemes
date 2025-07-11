@@ -1,0 +1,163 @@
+syntax = "proto3";
+package ozon.bx.ab_controller_api.api.ab_tests;
+option go_package = "gitlab.ozon.ru/bx/ab-controller-api/pkg/ab_tests;ab_tests";
+option csharp_namespace = "Ozon.Bx.AbControllerApi.ABTests";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/any.proto";
+import "github.com/envoyproxy/protoc-gen-validate/validate/validate.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "gitlab.ozon.ru/bx/ab-controller-api/api/layers/layers.proto";
+import "gitlab.ozon.ru/bx/ab-controller-api/api/types/types.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+
+service EtcdShanshots {
+  rpc Create(CreateGlobalAbTestRequest) returns (CreateGlobalAbTestResponse) {
+    option (google.api.http) = {
+      post: "/v1/global_ab_tests"
+      body: "*"
+    };
+  }
+  rpc SetActive(SetActiveRequest) returns (SetActiveResponse) {
+    option (google.api.http) = {
+      put: "/v1/global_ab_tests/{ID}/set_active"
+      body: "*"
+    };
+  }
+  rpc Stop(StopGABRequest) returns (StopGABResponse) {
+    option (google.api.http) = {
+      put: "/v1/global_ab_tests/{ID}/stop"
+      body: "*"
+    };
+  }
+  rpc AddExperimentToGlobalTests(AddExperimentToGlobalTestRequest) returns (AddExperimentToGlobalTestResponse) {
+    option (google.api.http) = {
+      post: "/v1/global_ab_tests/{globalAbTestID}/add_experiment/{experimentID}"
+      body: "*"
+    };
+  }
+  rpc ExcludeExperimentFromGlobalTests(ExcludeExperimentFromGlobalTestRequest) returns (ExcludeExperimentFromGlobalTestResponse) {
+    option (google.api.http) = {
+      post: "/v1/global_ab_tests/{globalAbTestID}/exclude_exp/{experimentID}"
+      body: "*"
+    };
+  }
+  rpc Update(UpdateGlobalAbTestRequest) returns (UpdateGlobalAbTestResponse) {
+    option (google.api.http) = {
+      patch: "/v1/global_ab_tests/{ID}"
+      body: "*"
+    };
+  }
+  rpc GetGlobalTestByID(GetGlobalTestRequest) returns(GetGlobalTestResponse){
+    option (google.api.http) = {
+      get: "/v3/global_ab_tests/{ID}"
+    };
+  }
+  rpc List(ListGlobalAbTestRequest) returns(ListGlobalAbTestResponse){
+    option (google.api.http) = {
+      get: "/v3/global_ab_tests"
+    };
+  }
+}
+
+message GetGlobalTestRequest {
+  int64 ID = 1 [(validate.rules).int64.gt = 0];
+}
+
+message GetGlobalTestResponse {
+  GlobalAbTest globalAbTest = 1;
+}
+
+message ListGlobalAbTestResponse {
+  repeated GlobalAbTest globalAbTests = 1;
+}
+
+message CreateGlobalAbTestRequest {
+  string name = 1 [(validate.rules).string.min_len = 1];
+  string description = 2;
+  repeated int64  servicesIDs = 3 [(validate.rules).repeated = {min_items: 1, items: {int64: {gt: 0}}}];
+  google.protobuf.Timestamp  startTime = 4 [(validate.rules).timestamp.required = true];
+  google.protobuf.Timestamp  endTime = 5 [(validate.rules).timestamp.required = true];
+  int64 rollout=6;
+}
+
+message CreateGlobalAbTestResponse {
+  int64 ID = 1;
+}
+
+// --- UPDATE request/response
+message UpdateGlobalAbTestRequest {
+  int64 ID = 1 [(validate.rules).int64 = {ignore_empty: true, gt: 0}];
+  string name = 2 [(validate.rules).string = {ignore_empty: true, min_len: 1}];
+  string description = 3;
+  repeated int64 servicesIDs = 4 [(validate.rules).repeated = {ignore_empty: true, min_items: 1, items: {int64: {gt: 0}}}];
+  google.protobuf.Timestamp startTime = 5;
+  google.protobuf.Timestamp endTime = 6;
+  int64 rollout=7;
+  google.protobuf.FieldMask updateMask = 8;
+
+}
+message UpdateGlobalAbTestResponse {
+}
+
+message ListGlobalAbTestRequest {
+}
+
+message ExcludeExperimentFromGlobalTestRequest {
+  int64 globalAbTestID = 1 [(validate.rules).int64.gt = 0];
+  int64 experimentID = 2 [(validate.rules).int64.gt = 0];
+}
+
+message ExcludeExperimentFromGlobalTestResponse {
+}
+
+message AddExperimentToGlobalTestRequest {
+  int64 globalAbTestID = 1 [(validate.rules).int64.gt = 0];
+  int64 experimentID = 2 [(validate.rules).int64.gt = 0];
+}
+
+message AddExperimentToGlobalTestResponse {
+}
+
+message StopGABRequest {
+  int64 ID = 1 [(validate.rules).int64.gt = 0];
+}
+message StopGABResponse {
+
+}
+
+message SetActiveRequest {
+  int64 ID = 1;
+}
+
+message SetActiveResponse {
+}
+
+message GlobalAbTest {
+  int64 ID = 1;
+  string name = 2;
+  string description = 3;
+  string managerLogin = 4;
+  repeated int64  servicesIDs = 5;
+  google.protobuf.Timestamp  startTime = 6;
+  google.protobuf.Timestamp  endTime = 7;
+  google.protobuf.Timestamp  stoppedAt = 8;
+  int64  layerId = 9;
+  int64  variantId = 10;
+  int64  cgVariantId = 11;
+  bool  isActive = 12;
+  GlobalTestStatus gtStatus = 13;
+}
+
+enum GlobalTestStatus {
+  GlobalTestStatusUnknown = 0;
+  GlobalTestStatusStopped = 2;
+  GlobalTestStatusRunning = 3;
+  GlobalTestStatusFinished = 4;
+  GlobalTestStatusPending = 5;
+  reserved 6;
+  GlobalTestStatusEdited = 7;
+}
